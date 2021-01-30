@@ -2,43 +2,65 @@
 
 OpenGL* OpenGL::instance = nullptr;
 int OpenGL::mItr = 200;
-const int OpenGL::xpos = 1366;
-const int OpenGL::ypos = 766;
+//const int OpenGL::xpos = 1366;
+//const int OpenGL::ypos = 766;
 const int OpenGL::WIDTH = 1302;
 const int OpenGL::HEIGHT = 730;
 
 OpenGL::OpenGL(){
+    // Initialize glfw
     glfwInit();
+    // Set window hints. These lines should be commented out for other machines
+    // If the version is not available, backward compatibility ensures the
+    // highest version compatible with the computer is used.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
     glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
+
+    // Some glfw settings
     glfwWindowHint(GLFW_RESIZABLE,GLFW_FALSE);
+    glfwSetInputMode(window,GLFW_STICKY_KEYS,GL_TRUE);
     glfwWindowHint(GLFW_SAMPLES,4);
     glEnable(GL_MULTISAMPLE);
-
+    // Create window and context
     window = glfwCreateWindow(WIDTH,HEIGHT,"A Most Excellent Window",0,0);
     if(!window){glfwTerminate();std::cout<<"Could not create window\n";}
     glfwMakeContextCurrent(window);
-
+    // Initialize glew
     glewExperimental = GL_TRUE;
     if(glewInit()!=GLEW_OK){std::cout<<"Could not initialize GLEW\n";}
 
-    glfwSetInputMode(window,GLFW_STICKY_KEYS,GL_TRUE);
     glViewport(0,0,WIDTH,HEIGHT);
 
+    // Output some useful information
+    std::cout<<"Vendor: "<<glGetString(GL_VENDOR)<<'\n';
+    std::cout<<"Renderer: "<<glGetString(GL_RENDERER)<<'\n';
+    std::cout<<"Version: "<<glGetString(GL_VERSION)<<'\n';
+    std::cout<<"Shading language version: "<<glGetString(GL_SHADING_LANGUAGE_VERSION)<<'\n';
+
+    // Get the monitor's screen resolution
+    const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+    static const int xpos = mode->width;
+    static const int ypos = mode->height;
+
+    // Set window in the center of the screen
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     glfwSetWindowPos(window,(xpos>>1)-(width>>1),(ypos>>1)-(height>>1));
-
+    // Set the keyback function
     glfwSetKeyCallback(window,key_callback);
+    // Compile vertex shader
     vshader();
+    // Compile fragment shader
     fshader();
+    // Link the shaders
     linkShaders();
+    // Create vao object
     genBuffer();
 
+    // Send information about the window size to the shader
     int loc = glGetUniformLocation(shaderProgram,"width");
     int loc1 = glGetUniformLocation(shaderProgram,"height");
-    std::cout<<loc1<<std::endl;
     glUniform1f(loc,width);
     glUniform1f(loc1,height);
 }
@@ -138,7 +160,7 @@ const char *OpenGL::fragment_shader = "\
 in vec3 fragmentColor;\
 out vec3 color;\
 void main(){\
-color = fragmentColor;\
+    color = fragmentColor;\
 }\
 ";
 
@@ -154,29 +176,38 @@ float yz = 0.37;\
 float x_w = 0.05 * (width/height);\
 float y_w = 0.05;\
 \
-int mandelbrot(float re, float im){\
-int itr = 0;\
-float xx = 0.0,yy = 0.0,x = 0.0,y = 0.0;\
-while((x * x + y * y <= 4) && (itr < mItr)){\
-    x = xx * xx - yy * yy + re * (x_w/width) + xz;\
-    y = 2.0 * xx * yy + im * (y_w/height) + yz;\
-    xx = x;\
-    yy = y;\
-    itr++;\
-}\
+int mandelbrot(float re, float im)\
+{\
+    int itr = 0;\
+    float xx = 0.0,yy = 0.0,x = 0.0,y = 0.0;\
+    while((x * x + y * y <= 4) && (itr < mItr)){\
+        x = xx * xx - yy * yy + re * (x_w/width) + xz;\
+        y = 2.0 * xx * yy + im * (y_w/height) + yz;\
+        xx = x;\
+        yy = y;\
+        itr++;\
+    }\
 return itr;\
 }\
-vec3 colorPalette(int iter){\
-if (iter == mItr){return vec3(0.0,0.471,0.953);}\
-else{return vec3(cos(iter*0.01227*1),cos(iter*0.01227*3),cos(iter*0.01227*5));}\
+vec3 colorPalette(int iter)\
+{\
+    if (iter == mItr){return vec3(0.0,0.471,0.953);}\
+    else{return vec3(cos(iter*0.01227*1),cos(iter*0.01227*3),cos(iter*0.01227*5));}\
 }\
 out vec3 fragmentColor;\
-void main(){\
-float px = re * (x_w/width) + xz;\
-float py = im * (y_w/height) + yz;\
-gl_Position = vec4((2.0/x_w)*px-(x_w+2.0*xz)/x_w ,(2.0/y_w)*py-(y_w+2.0*yz)/y_w, 0.0, 1.0);\
-int iter = mandelbrot(re, im);\
-fragmentColor = colorPalette(iter);\
+\
+void main()\
+{\
+    float px = re * (x_w/width) + xz;\
+    float py = im * (y_w/height) + yz;\
+    gl_Position = vec4((2.0/x_w) * px - (x_w + 2.0 * xz)/x_w, (2.0/y_w) * py - (y_w + 2.0 * yz)/y_w, 0.0, 1.0);\
+    int iter = mandelbrot(re, im);\
+    fragmentColor = colorPalette(iter);\
 }\
 ";
-///*fragmentColor = vec3(cos(iter*0.01227*1),cos(iter*0.01227*3),cos(iter*0.01227*5));\
+
+
+void hello(){
+
+}
+//*fragmentColor = vec3(cos(iter*0.01227*1),cos(iter*0.01227*3),cos(iter*0.01227*5));\/*

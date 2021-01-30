@@ -18,30 +18,38 @@
 #include "Opengl.h"
 #include<chrono>
 
-int main()
+int main(int argc, char* argv[])
 {
+    int screen_width = 600;
+    int screen_height = 600;
+
     // instantiate the openGL context
     OpenGL* program = OpenGL::getInstance();
+
     // obtain location of uniform variables
     int re = glGetUniformLocation(program->shader(),"re");
     int im = glGetUniformLocation(program->shader(),"im");
     int mItr = glGetUniformLocation(program->shader(),"mItr");
+
     // set uniform variable default maximum iterations to 200.
     glUniform1i(mItr,200);
+
     // Rendering loop/To exit the program, exit the window or press the space bar.
     while(!program->close()){
 
     program->poll();
     // Begin timer to test the speed of rendering to entire screen
     auto start = std::chrono::high_resolution_clock::now();
-    // algorithm loop/ can this be placed inside shader?
+
+    // algorithm loop
     for(int i = 0;i < 1302;i++){
         for(int j = 0;j < 730;j++){
             glUniform1f(re,i);
             glUniform1f(im,j);
             program->render();
-        }
+       }
     }
+
     // End timer and output to screen
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
